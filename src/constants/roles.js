@@ -1,0 +1,58 @@
+const ROLES = Object.freeze({
+  STUDENT: "student",
+  TRAINER: "trainer",
+  ADMIN: "admin",
+  SUPER_ADMIN: "super_admin",
+});
+
+const CREATOR_ROLES = [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN];
+const ADMIN_ROLES = [ROLES.ADMIN, ROLES.SUPER_ADMIN];
+
+const RBAC = Object.freeze({
+  users: {
+    read: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    create: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    update: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    delete: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    roleUpdate: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+  },
+  courses: {
+    read: [ROLES.STUDENT, ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    create: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    update: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    delete: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+  },
+  enrollments: {
+    read: [ROLES.STUDENT, ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    create: [ROLES.STUDENT, ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    update: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    delete: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+  },
+  attendance: {
+    read: [ROLES.STUDENT, ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    create: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    update: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    delete: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+  },
+  batches: {
+    read: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    create: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    update: [ROLES.TRAINER, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    delete: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+  },
+  promos: {
+    read: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    create: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    update: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+    delete: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+  },
+});
+
+function hasPermission(role, module, action) {
+  if (role === ROLES.SUPER_ADMIN) return true;
+  const modulePermissions = RBAC[module];
+  if (!modulePermissions || !modulePermissions[action]) return false;
+  return modulePermissions[action].includes(role);
+}
+
+module.exports = { ROLES, CREATOR_ROLES, ADMIN_ROLES, RBAC, hasPermission };
