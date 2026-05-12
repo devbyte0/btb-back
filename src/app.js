@@ -11,7 +11,9 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",") : "*",
+    origin: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(",")
+      : ["http://localhost:3000", "https://baristatrainingbangladesh.vercel.app"],
     credentials: true,
   })
 );
