@@ -2,6 +2,7 @@ const { asyncHandler } = require("../utils/asyncHandler");
 const Attendance = require("../models/Attendance");
 const Batch = require("../models/Batch");
 const { CREATOR_ROLES, ROLES } = require("../constants/roles");
+const { notifyAttendanceMarked } = require("./notificationController");
 
 const markAttendance = asyncHandler(async (req, res) => {
   if (!CREATOR_ROLES.includes(req.user.role)) {
@@ -40,6 +41,7 @@ const markAttendance = asyncHandler(async (req, res) => {
     { upsert: true, new: true, runValidators: true }
   );
 
+  notifyAttendanceMarked(attendance).catch(() => {});
   return res.status(200).json({ success: true, data: attendance });
 });
 

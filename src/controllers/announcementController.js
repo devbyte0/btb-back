@@ -1,37 +1,18 @@
 const { asyncHandler } = require("../utils/asyncHandler");
 const Announcement = require("../models/Announcement");
-const Notification = require("../models/Notification");
-const User = require("../models/User");
+const { notifyAnnouncement } = require("./notificationController");
 
 const listAnnouncements = asyncHandler(async (req, res) => {
   const filter = {};
-  if (req.user.role === "student") {
-    filter.$or = [{ targetRoles: "student" }, { targetRoles: { $size: 0 } }];
-  }
-  if (req.user.role === "trainer") {
-    filter.$or = [{ targetRoles: "trainer" }, { targetRoles: { $size: 0 } }];
-  }
-  const items = await Announcement.find(filter)
-    .populate("createdBy", "name username")
-    .sort({ createdAt: -1 });
+  if (req.user.role === "student") filter.$or = [{ targetRoles: "student" }, { targetRoles: { $size: 0 } }];
+  if (req.user.role === "trainer") filter.$or = [{ targetRoles: "trainer" }, { targetRoles: { $size: 0 } }];
+  const items = await Announcement.find(filter).populate("createdBy", "name username").sort({ createdAt: -1 });
   return res.status(200).json({ success: true, data: items });
 });
 
 const createAnnouncement = asyncHandler(async (req, res) => {
   const announcement = await Announcement.create({ ...req.body, createdBy: req.user._id });
-
-  if (announcement.targetRoles && announcement.targetRoles.length > 0) {
-    const users = await User.find({ role: { $in: announcement.targetRoles }, isActive: true }).select("_id");
-    const notifications = users.map((u) => ({
-      type: "announcement",
-      title: announcement.title,
-      message: announcement.content.slice(0, 200),
-      link: "/dashboard/student",
-      recipient: u._id,
-    }));
-    if (notifications.length > 0) await Notification.insertMany(notifications);
-  }
-
+  notifyAnnouncement(announcement).catch((err) => console.error("Announcement notification error:", err.message));
   return res.status(201).json({ success: true, data: announcement });
 });
 

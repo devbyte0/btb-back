@@ -8,6 +8,7 @@ const {
   updateUserRole,
   deleteUser,
   updateProfile,
+  deleteStudentFull,
 } = require("../controllers/userController");
 const { requireAuth, allowAction } = require("../middleware/auth");
 const { validateRequest } = require("../middleware/validate");
@@ -71,6 +72,7 @@ router.patch(
   updateUserRole
 );
 
+router.delete("/students/:studentId", requireAuth, allowAction("users", "delete"), deleteStudentFull);
 router.delete("/:userId", requireAuth, allowAction("users", "delete"), deleteUser);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const User = require("../models/User");
 const { getAdminDiscountAmount, getPromoDiscountAmount } = require("../utils/pricing");
 const { ROLES } = require("../constants/roles");
 const { notifyNewEnrollment } = require("./notificationController");
+const { sendEnrollmentReceipt } = require("./emailController");
 
 function isPromoValidForCourse(promo, courseId) {
   if (!promo.isActive) return false;
@@ -93,6 +94,7 @@ const createEnrollment = asyncHandler(async (req, res) => {
   }
 
   notifyNewEnrollment(enrollment);
+  sendEnrollmentReceipt(enrollment).catch((err) => console.error("Enrollment receipt email failed:", err.message));
 
   return res.status(201).json({ success: true, data: enrollment });
 });

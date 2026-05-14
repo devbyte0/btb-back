@@ -40,18 +40,8 @@ async function dropStaleIndexes() {
   }
 }
 
-async function clearAttendance() {
-  try {
-    const result = await Attendance.deleteMany({});
-    console.log(`Cleared ${result.deletedCount} previous attendance records`);
-  } catch (err) {
-    console.error("Error clearing attendance records:", err.message);
-  }
-}
-
 (async () => {
   await dropStaleIndexes();
-  await clearAttendance();
 })();
 
 module.exports = Attendance;

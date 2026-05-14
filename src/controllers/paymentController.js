@@ -2,6 +2,7 @@ const { asyncHandler } = require("../utils/asyncHandler");
 const Enrollment = require("../models/Enrollment");
 const Payment = require("../models/Payment");
 const { ADMIN_ROLES, ROLES } = require("../constants/roles");
+const { notifyPaymentReceived, notifyPendingPayment } = require("./notificationController");
 
 const createPayment = asyncHandler(async (req, res) => {
   const { enrollmentId, amount, method, reference, note } = req.body;
@@ -45,6 +46,9 @@ const createPayment = asyncHandler(async (req, res) => {
   );
   enrollment.paymentSummary.isSettled = enrollment.paymentSummary.dueAmount === 0;
   await enrollment.save();
+
+  notifyPaymentReceived(enrollment, amount).catch(() => {});
+  if (enrollment.paymentSummary.dueAmount > 0) notifyPendingPayment(enrollment).catch(() => {});
 
   return res.status(201).json({ success: true, data: { payment, paymentSummary: enrollment.paymentSummary } });
 });

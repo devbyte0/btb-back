@@ -1,5 +1,7 @@
 const { asyncHandler } = require("../utils/asyncHandler");
 const User = require("../models/User");
+const Enrollment = require("../models/Enrollment");
+const Batch = require("../models/Batch");
 const { ROLES, ADMIN_ROLES } = require("../constants/roles");
 
 const getUserById = asyncHandler(async (req, res) => {
@@ -125,6 +127,30 @@ const updateProfile = asyncHandler(async (req, res) => {
   return res.status(200).json({ success: true, data: updated });
 });
 
+const deleteStudentFull = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const student = await User.findById(studentId);
+  if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+  if (student.role !== ROLES.STUDENT) return res.status(400).json({ success: false, message: "User is not a student" });
+
+  // Delete all enrollments
+  await Enrollment.deleteMany({ student: studentId });
+
+  // Remove from all batches
+  await Batch.updateMany(
+    { students: studentId },
+    { $pull: { students: studentId } }
+  );
+
+  // Delete the user
+  await User.findByIdAndDelete(studentId);
+
+  return res.status(200).json({
+    success: true,
+    message: `Student "${student.name}" deleted along with enrollments and batch memberships`,
+  });
+});
+
 module.exports = {
   createStudentByTrainer,
   getUserById,
@@ -133,4 +159,5 @@ module.exports = {
   updateUserRole,
   deleteUser,
   updateProfile,
+  deleteStudentFull,
 };

@@ -1,8 +1,10 @@
 const { asyncHandler } = require("../utils/asyncHandler");
 const ContactInquiry = require("../models/ContactInquiry");
+const { sendContactInquiryEmail, sendReplyEmail } = require("./emailController");
 
 const createInquiry = asyncHandler(async (req, res) => {
   const inquiry = await ContactInquiry.create(req.body);
+  sendContactInquiryEmail(inquiry).catch((err) => console.error("Email notify failed:", err.message));
   return res.status(201).json({ success: true, data: inquiry });
 });
 
@@ -19,6 +21,7 @@ const markReplied = asyncHandler(async (req, res) => {
     { new: true }
   );
   if (!inquiry) return res.status(404).json({ success: false, message: "Inquiry not found" });
+  sendReplyEmail(inquiry).catch((err) => console.error("Reply email failed:", err.message));
   return res.status(200).json({ success: true, data: inquiry });
 });
 

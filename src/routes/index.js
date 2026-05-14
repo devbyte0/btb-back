@@ -15,6 +15,7 @@ const announcementRoutes = require("./announcementRoutes");
 const contactRoutes = require("./contactRoutes");
 const notificationRoutes = require("./notificationRoutes");
 const popupRoutes = require("./popupRoutes");
+const emailRoutes = require("./emailRoutes");
 
 const router = express.Router();
 
@@ -33,5 +34,6 @@ router.use("/announcements", announcementRoutes);
 router.use("/contacts", contactRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/popups", popupRoutes);
+router.use("/emails", emailRoutes);
 
 module.exports = router;
