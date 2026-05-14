@@ -44,8 +44,8 @@ const listBatches = asyncHandler(async (_req, res) => {
   const batches = await Batch.find({ isActive: true })
     .populate("course", "title")
     .populate("courses", "title")
-    .populate("students", "name username role")
-    .populate("trainers", "name username role")
+    .populate("students", "name username role email phone")
+    .populate("trainers", "name username role email phone")
     .sort({ createdAt: -1 });
 
   return res.status(200).json({ success: true, data: batches });
@@ -55,8 +55,8 @@ const getBatchById = asyncHandler(async (req, res) => {
   const batch = await Batch.findById(req.params.batchId)
     .populate("course", "title")
     .populate("courses", "title")
-    .populate("students", "name username role")
-    .populate("trainers", "name username role");
+    .populate("students", "name username role email phone")
+    .populate("trainers", "name username role email phone");
   if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
   return res.status(200).json({ success: true, data: batch });
 });
@@ -84,8 +84,8 @@ const updateBatch = asyncHandler(async (req, res) => {
   const batch = await Batch.findByIdAndUpdate(req.params.batchId, updates, { new: true })
     .populate("course", "title")
     .populate("courses", "title")
-    .populate("students", "name username role")
-    .populate("trainers", "name username role");
+    .populate("students", "name username role email phone")
+    .populate("trainers", "name username role email phone");
 
   if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
   return res.status(200).json({ success: true, data: batch });
@@ -114,8 +114,8 @@ const assignStudentsToBatch = asyncHandler(async (req, res) => {
   )
     .populate("course", "title")
     .populate("courses", "title")
-    .populate("students", "name username role")
-    .populate("trainers", "name username role");
+    .populate("students", "name username role email phone")
+    .populate("trainers", "name username role email phone");
 
   if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
 
@@ -150,8 +150,8 @@ const assignTrainersToBatch = asyncHandler(async (req, res) => {
   )
     .populate("course", "title")
     .populate("courses", "title")
-    .populate("students", "name username role")
-    .populate("trainers", "name username role");
+    .populate("students", "name username role email phone")
+    .populate("trainers", "name username role email phone");
 
   if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
 
@@ -191,8 +191,18 @@ const removeScheduleItem = asyncHandler(async (req, res) => {
   return res.status(200).json({ success: true, data: batch });
 });
 
+const getStudentBatch = asyncHandler(async (req, res) => {
+  const batch = await Batch.findOne({ students: req.user._id, isActive: true })
+    .populate("course", "title")
+    .populate("courses", "title")
+    .populate("students", "name username role email phone")
+    .populate("trainers", "name username role email phone");
+  return res.status(200).json({ success: true, data: batch || null });
+});
+
 module.exports = {
   createBatch, listBatches, getBatchById, updateBatch,
   assignStudentsToBatch, assignTrainersToBatch, deleteBatch,
   addScheduleItem, updateScheduleItem, removeScheduleItem,
+  getStudentBatch,
 };

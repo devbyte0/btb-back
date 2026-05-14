@@ -4,6 +4,7 @@ const {
   createBatch, listBatches, getBatchById, updateBatch,
   assignStudentsToBatch, assignTrainersToBatch, deleteBatch,
   addScheduleItem, updateScheduleItem, removeScheduleItem,
+  getStudentBatch,
 } = require("../controllers/batchController");
 const { requireAuth, allowAction } = require("../middleware/auth");
 const { validateRequest } = require("../middleware/validate");
@@ -11,6 +12,7 @@ const { validateRequest } = require("../middleware/validate");
 const router = express.Router();
 
 router.get("/", requireAuth, allowAction("batches", "read"), listBatches);
+router.get("/my-batch", requireAuth, getStudentBatch);
 router.get("/:batchId", requireAuth, allowAction("batches", "read"), getBatchById);
 
 router.post("/", requireAuth, allowAction("batches", "create"),
