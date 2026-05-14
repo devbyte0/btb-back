@@ -165,12 +165,34 @@ const deleteBatch = asyncHandler(async (req, res) => {
   return res.status(200).json({ success: true, message: "Batch deleted" });
 });
 
+const addScheduleItem = asyncHandler(async (req, res) => {
+  const batch = await Batch.findById(req.params.batchId);
+  if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+  batch.schedule.push(req.body);
+  await batch.save();
+  return res.status(201).json({ success: true, data: batch });
+});
+
+const updateScheduleItem = asyncHandler(async (req, res) => {
+  const batch = await Batch.findById(req.params.batchId);
+  if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+  const item = batch.schedule.id(req.params.scheduleId);
+  if (!item) return res.status(404).json({ success: false, message: "Schedule item not found" });
+  Object.assign(item, req.body);
+  await batch.save();
+  return res.status(200).json({ success: true, data: batch });
+});
+
+const removeScheduleItem = asyncHandler(async (req, res) => {
+  const batch = await Batch.findById(req.params.batchId);
+  if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+  batch.schedule.pull({ _id: req.params.scheduleId });
+  await batch.save();
+  return res.status(200).json({ success: true, data: batch });
+});
+
 module.exports = {
-  createBatch,
-  listBatches,
-  getBatchById,
-  updateBatch,
-  assignStudentsToBatch,
-  assignTrainersToBatch,
-  deleteBatch,
+  createBatch, listBatches, getBatchById, updateBatch,
+  assignStudentsToBatch, assignTrainersToBatch, deleteBatch,
+  addScheduleItem, updateScheduleItem, removeScheduleItem,
 };
