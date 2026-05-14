@@ -8,7 +8,7 @@ function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT) || 587;
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const pass = (process.env.SMTP_PASS || "").replace(/\s+/g, "");
 
   if (!host || !user || !pass) {
     console.warn("SMTP not configured. Email sending disabled.");
@@ -20,9 +20,25 @@ function getTransporter() {
     port,
     secure: port === 465,
     auth: { user, pass },
+    requireTLS: true,
+    tls: { rejectUnauthorized: false },
   });
 
   return transporter;
+}
+
+async function verifyConnection() {
+  const t = getTransporter();
+  if (!t) return false;
+  try {
+    await t.verify();
+    console.log("SMTP connection verified successfully");
+    return true;
+  } catch (err) {
+    console.error("SMTP verification failed:", err.message);
+    transporter = null;
+    return false;
+  }
 }
 
 async function sendEmail({ to, subject, html, from }) {
@@ -32,15 +48,19 @@ async function sendEmail({ to, subject, html, from }) {
     return { sent: false, reason: "SMTP not configured" };
   }
 
-  const info = await t.sendMail({
-    from: from || `"Barista Training Bangladesh" <${process.env.SMTP_USER || "noreply@btb.com"}>`,
-    to: Array.isArray(to) ? to.join(", ") : to,
-    subject,
-    html,
-  });
-
-  console.log(`Email sent to ${to}: ${info.messageId}`);
-  return { sent: true, messageId: info.messageId };
+  try {
+    const info = await t.sendMail({
+      from: from || `"Barista Training Bangladesh" <${process.env.SMTP_USER}>`,
+      to: Array.isArray(to) ? to.join(", ") : to,
+      subject,
+      html,
+    });
+    console.log(`Email sent to ${to}: ${info.messageId}`);
+    return { sent: true, messageId: info.messageId };
+  } catch (err) {
+    console.error(`Email send failed to ${to}:`, err.message);
+    throw err;
+  }
 }
 
 function buildEmailTemplate(title, bodyLines) {
@@ -58,4 +78,4 @@ function buildEmailTemplate(title, bodyLines) {
   `;
 }
 
-module.exports = { sendEmail, buildEmailTemplate, getTransporter };
+module.exports = { sendEmail, buildEmailTemplate, getTransporter, verifyConnection };

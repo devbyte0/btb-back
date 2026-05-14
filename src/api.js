@@ -1,6 +1,7 @@
 require("dotenv").config();
 const app = require("./app");
 const connectDB = require("./config/db");
+const { verifyConnection } = require("./utils/email");
 
 let cachedDb = false;
 
@@ -8,6 +9,7 @@ async function initialize() {
   if (!cachedDb) {
     await connectDB();
     cachedDb = true;
+    verifyConnection();
   }
 }
 
