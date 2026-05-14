@@ -2,6 +2,7 @@ const { asyncHandler } = require("../utils/asyncHandler");
 const User = require("../models/User");
 const Enrollment = require("../models/Enrollment");
 const Batch = require("../models/Batch");
+const Attendance = require("../models/Attendance");
 const { ROLES, ADMIN_ROLES } = require("../constants/roles");
 
 const getUserById = asyncHandler(async (req, res) => {
@@ -151,13 +152,21 @@ const deleteStudentFull = asyncHandler(async (req, res) => {
   });
 });
 
+const getStudentFullData = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const student = await User.findById(studentId).select("-password");
+  if (!student || student.role !== ROLES.STUDENT) return res.status(404).json({ success: false, message: "Student not found" });
+
+  const [enrollments, batches, attendanceRecords] = await Promise.all([
+    Enrollment.find({ student: studentId }).populate("course", "title basePrice durationDays").sort({ createdAt: -1 }),
+    Batch.find({ students: studentId, isActive: true }).populate("courses", "title").populate("trainers", "name username email phone"),
+    Attendance.find({ batch: { $in: (await Batch.find({ students: studentId }).select("_id")).map((b) => b._id) } }).populate("batch", "name code").populate("records.student", "name username").sort({ sessionDate: -1 }),
+  ]);
+
+  return res.status(200).json({ success: true, data: { student, enrollments, batches, attendanceRecords } });
+});
+
 module.exports = {
-  createStudentByTrainer,
-  getUserById,
-  updateUser,
-  listUsers,
-  updateUserRole,
-  deleteUser,
-  updateProfile,
-  deleteStudentFull,
+  createStudentByTrainer, getUserById, updateUser, listUsers, updateUserRole,
+  deleteUser, updateProfile, deleteStudentFull, getStudentFullData,
 };
