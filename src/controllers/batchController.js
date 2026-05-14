@@ -3,6 +3,7 @@ const Batch = require("../models/Batch");
 const User = require("../models/User");
 const Course = require("../models/Course");
 const { ROLES } = require("../constants/roles");
+const { sendBatchAssignedEmail } = require("./emailController");
 
 const normalizeCourseIds = (courseId, courseIds = []) => {
   const set = new Set();
@@ -117,6 +118,10 @@ const assignStudentsToBatch = asyncHandler(async (req, res) => {
     .populate("trainers", "name username role");
 
   if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+  for (const sid of studentIds) {
+    sendBatchAssignedEmail(sid, batch).catch(() => {});
+  }
 
   return res.status(200).json({ success: true, data: batch });
 });

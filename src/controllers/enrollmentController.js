@@ -94,7 +94,7 @@ const createEnrollment = asyncHandler(async (req, res) => {
   }
 
   notifyNewEnrollment(enrollment);
-  sendEnrollmentReceipt(enrollment).catch((err) => console.error("Enrollment receipt email failed:", err.message));
+  sendEnrollmentReceipt(enrollment, req.body.plainPassword).catch((err) => console.error("Enrollment receipt email failed:", err.message));
 
   return res.status(201).json({ success: true, data: enrollment });
 });
