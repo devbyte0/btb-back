@@ -14,6 +14,41 @@ async function sendContactInquiryEmail(inquiry) {
   await sendEmail({ to: ADMIN_EMAIL, subject: `New inquiry from ${inquiry.name}`, html });
 }
 
+async function sendEnrollmentAcceptedEmail(enrollment, plainPassword) {
+  const studentObj = typeof enrollment.student === "object" ? enrollment.student : await User.findById(enrollment.student).select("name username email");
+  const studentName = studentObj?.name || "Student";
+  const studentUsername = studentObj?.username || "";
+  const studentEmail = studentObj?.email || "";
+  const courseTitle = enrollment.course?.title || "Course";
+
+  if (!studentEmail) return;
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#faf8f5;padding:30px;border-radius:12px;">
+      <div style="background:#d4803c;color:white;padding:30px;border-radius:10px 10px 0 0;text-align:center;">
+        <h2 style="margin:0;font-size:24px;">Welcome to Barista Training Bangladesh!</h2>
+      </div>
+      <div style="background:white;padding:30px;border-radius:0 0 10px 10px;border:1px solid #e8e0d8;">
+        <p style="color:#333;font-size:16px;margin:0 0 5px;">Dear ${studentName},</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">Congratulations! Your enrollment for <strong>${courseTitle}</strong> has been accepted.</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">You can now log in to your dashboard to track your progress, view class schedules, and manage your training.</p>
+        ${plainPassword ? `
+        <div style="background:#fef3c7;padding:15px;border-radius:8px;margin:20px 0;">
+          <p style="margin:0 0 5px;color:#92400e;font-size:14px;"><strong>Your Login Credentials</strong></p>
+          <p style="margin:0;color:#92400e;font-size:14px;">Username: <strong>${studentUsername}</strong></p>
+          <p style="margin:0;color:#92400e;font-size:14px;">Password: <strong>${plainPassword}</strong></p>
+        </div>
+        <p style="color:#999;font-size:12px;">Please save your credentials. You can change your password from the profile page.</p>
+        ` : ""}
+        <hr style="border:none;border-top:1px solid #eee;margin:25px 0;" />
+        <p style="color:#999;font-size:12px;text-align:center;">Barista Training Bangladesh<br/>Mirpur, Dhaka</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({ to: studentEmail, subject: `Welcome to ${courseTitle} - Barista Training Bangladesh`, html });
+}
+
 async function sendEnrollmentReceipt(enrollment, plainPassword) {
   const studentObj = typeof enrollment.student === "object" ? enrollment.student : await User.findById(enrollment.student).select("name username email");
   const studentName = studentObj?.name || enrollment.student?.name || "Student";
@@ -103,4 +138,4 @@ const sendTestEmail = asyncHandler(async (req, res) => {
   return res.status(200).json({ success: true, data: result });
 });
 
-module.exports = { sendContactInquiryEmail, sendEnrollmentReceipt, sendBatchAssignedEmail, sendReplyEmail, sendTestEmail };
+module.exports = { sendContactInquiryEmail, sendEnrollmentAcceptedEmail, sendEnrollmentReceipt, sendBatchAssignedEmail, sendReplyEmail, sendTestEmail };

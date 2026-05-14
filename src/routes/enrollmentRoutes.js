@@ -6,6 +6,7 @@ const {
   getEnrollmentById,
   updateEnrollment,
   deleteEnrollment,
+  sendReceipt,
 } = require("../controllers/enrollmentController");
 const { requireAuth, allowAction } = require("../middleware/auth");
 const { validateRequest } = require("../middleware/validate");
@@ -38,5 +39,7 @@ router.patch(
 );
 
 router.delete("/:enrollmentId", requireAuth, allowAction("enrollments", "delete"), deleteEnrollment);
+
+router.post("/:enrollmentId/send-receipt", requireAuth, allowAction("enrollments", "read"), sendReceipt);
 
 module.exports = router;
