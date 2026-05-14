@@ -9,16 +9,13 @@ const ADMIN_EMAIL = "baristatrainingbangladesh@gmail.com";
 const listNotifications = asyncHandler(async (req, res) => {
   const notifications = await Notification.find({
     $or: [{ recipient: req.user._id }, { isGlobal: true }],
-  })
-    .sort({ createdAt: -1 })
-    .limit(50);
+  }).sort({ createdAt: -1 }).limit(50);
   return res.status(200).json({ success: true, data: notifications });
 });
 
 const getUnreadCount = asyncHandler(async (req, res) => {
   const count = await Notification.countDocuments({
-    $or: [{ recipient: req.user._id }, { isGlobal: true }],
-    read: false,
+    $or: [{ recipient: req.user._id }, { isGlobal: true }], read: false,
   });
   return res.status(200).json({ success: true, data: { count } });
 });
@@ -33,31 +30,45 @@ const markAsRead = asyncHandler(async (req, res) => {
 
 const markAllAsRead = asyncHandler(async (req, res) => {
   await Notification.updateMany(
-    { $or: [{ recipient: req.user._id }, { isGlobal: true }], read: false },
-    { read: true }
+    { $or: [{ recipient: req.user._id }, { isGlobal: true }], read: false }, { read: true }
   );
   return res.status(200).json({ success: true, message: "All marked as read" });
 });
 
-// ── Helper to create a notification ──
+// ── Helpers ──
 async function createNotif({ type, title, message, link, recipient, isGlobal = false }) {
+  try { await Notification.create({ type, title, message, link, recipient, isGlobal }); }
+  catch (err) { console.error("Failed to create notification:", err.message); }
+}
+
+async function emailUser(userId, subject, bodyLines) {
   try {
-    await Notification.create({ type, title, message, link, recipient, isGlobal });
-  } catch (err) {
-    console.error("Failed to create notification:", err.message);
-  }
+    const user = await User.findById(userId).select("email name");
+    if (!user?.email) return;
+    const html = buildEmailTemplate(subject, [`Dear ${user.name},`, ...bodyLines]);
+    await sendEmail({ to: user.email, subject: `${subject} - Barista Training Bangladesh`, html });
+  } catch (err) { console.error("Email notify failed:", err.message); }
+}
+
+async function emailAdmin(subject, bodyLines) {
+  try {
+    const html = buildEmailTemplate(subject, bodyLines);
+    await sendEmail({ to: ADMIN_EMAIL, subject: `${subject} - Barista Training Bangladesh`, html });
+  } catch (err) { console.error("Admin email notify failed:", err.message); }
 }
 
 // ── Enrollment ──
 async function notifyNewEnrollment(enrollment) {
   const msg = `${enrollment.student?.name || "A student"} enrolled in ${enrollment.course?.title || "a course"}`;
   await createNotif({ type: "enrollment", title: "New Enrollment", message: msg, link: "/dashboard/admin/enrollments", isGlobal: true });
+  await emailAdmin("New Enrollment", [msg, `Amount: Tk ${enrollment.paymentSummary?.paidAmount || 0}`]);
 }
 
 // ── Payment ──
 async function notifyPaymentReceived(enrollment, amount) {
   const msg = `${enrollment.student?.name || "Student"} paid Tk ${amount} for ${enrollment.course?.title || "course"}`;
   await createNotif({ type: "payment", title: "Payment Received", message: msg, link: "/dashboard/admin/enrollments", isGlobal: true });
+  await emailAdmin("Payment Received", [msg, `Due remaining: Tk ${enrollment.paymentSummary?.dueAmount || 0}`]);
 }
 
 async function notifyPendingPayment(enrollment) {
@@ -66,6 +77,7 @@ async function notifyPendingPayment(enrollment) {
   const studentId = enrollment.student?._id || enrollment.student;
   const msg = `You have Tk ${due} due for ${enrollment.course?.title || "course"}. Please complete your payment.`;
   await createNotif({ type: "payment", title: "Payment Due Reminder", message: msg, link: "/dashboard/student", recipient: studentId });
+  await emailUser(studentId, "Payment Due Reminder", [msg, `Course: ${enrollment.course?.title || "N/A"}`, `Amount due: Tk ${due}`]);
 }
 
 // ── Attendance ──
@@ -79,6 +91,9 @@ async function notifyAttendanceMarked(attendance) {
       message: `Your attendance for ${batchName} on ${date} was marked as ${status}.`,
       link: "/dashboard/student", recipient: rec.student,
     });
+    await emailUser(rec.student, `Attendance: ${status.toUpperCase()}`, [
+      `Your attendance for ${batchName} on ${date} was marked as "${status}".`,
+    ]);
   }
 }
 
@@ -86,13 +101,16 @@ async function notifyAttendanceMarked(attendance) {
 async function notifyAnnouncement(announcement) {
   const roles = announcement.targetRoles || [];
   const filter = roles.length > 0 ? { role: { $in: roles }, isActive: true } : { isActive: true };
-  const users = await User.find(filter).select("_id");
+  const users = await User.find(filter).select("_id email name");
   for (const user of users) {
     await createNotif({
       type: "announcement", title: announcement.title,
       message: announcement.content?.slice(0, 200),
       link: "/dashboard", recipient: user._id,
     });
+    if (user.email) {
+      await emailUser(user._id, announcement.title, [announcement.content || ""]);
+    }
   }
 }
 
@@ -112,6 +130,10 @@ const checkPendingPayments = asyncHandler(async (_req, res) => {
       message: `Tk ${due} due for ${en.course?.title || "course"}. Please pay to continue.`,
       link: "/dashboard/student", recipient: studentId,
     });
+    await emailUser(studentId, "Payment Reminder", [
+      `You have Tk ${due} due for ${en.course?.title || "a course"}.`,
+      "Please complete your payment at your earliest convenience.",
+    ]);
     sent++;
   }
   return res.status(200).json({ success: true, data: { checked: enrollments.length, notified: sent } });
